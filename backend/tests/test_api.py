@@ -6,6 +6,15 @@ import pytest
 from backend.main import create_app, sample_events
 
 
+AUTH_HEADERS = {"X-Requested-With": "XMLHttpRequest"}
+
+
+def login(client):
+    client.headers.update(AUTH_HEADERS)
+    response = client.post("/api/auth/login", json={"username": "test1", "password": "12345678"})
+    assert response.status_code == 200
+
+
 @pytest.fixture
 def event_input():
     return {
@@ -17,12 +26,14 @@ def event_input():
 @pytest.fixture
 def client(tmp_path):
     with TestClient(create_app(tmp_path / "予定.sqlite3", tmp_path / "画面")) as test_client:
+        login(test_client)
         yield test_client
 
 
 def test_create_update_delete_and_persistence(tmp_path, event_input):
     path = tmp_path / "予定.sqlite3"
     with TestClient(create_app(path)) as client:
+        login(client)
         assert client.get("/api/health").json() == {"status": "ok"}
         initial = client.get("/api/events").json()
         assert len(initial) >= 11
@@ -36,6 +47,7 @@ def test_create_update_delete_and_persistence(tmp_path, event_input):
         assert response.status_code == 200
         assert response.json()["title"] == "歯科の予約"
     with TestClient(create_app(path)) as client:
+        login(client)
         saved = next(event for event in client.get("/api/events").json() if event["id"] == created["id"])
         assert saved["category"] == "medical"
         assert saved["location"] == "さくら歯科"
@@ -48,9 +60,11 @@ def test_create_update_delete_and_persistence(tmp_path, event_input):
 def test_deleted_samples_are_not_recreated(tmp_path):
     path = tmp_path / "予定.sqlite3"
     with TestClient(create_app(path)) as client:
+        login(client)
         for event in client.get("/api/events").json():
             assert client.delete(f"/api/events/{event['id']}").status_code == 204
     with TestClient(create_app(path)) as client:
+        login(client)
         assert client.get("/api/events").json() == []
 
 
