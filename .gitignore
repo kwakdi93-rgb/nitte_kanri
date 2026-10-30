@@ -218,3 +218,11 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# フロントエンドの依存関係と検証結果
+node_modules/
+playwright-report/
+test-results/
+
+# ローカルの予定データ
+data/
